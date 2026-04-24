@@ -21,7 +21,7 @@ func BuildFilename(feed struct {
 }, spec *struct{ FileFormat string }, cfg struct{ FilenameTemplate string }) string {
 	default_name := func() string {
 		if feed.Title != "" {
-			return feed.Title
+			return strings.ReplaceAll(strings.ReplaceAll(feed.Title, "/", "_"), "\\", "_")
 		}
 		if feed.ObjectId != "" {
 			return feed.ObjectId
@@ -32,13 +32,13 @@ func BuildFilename(feed struct {
 	params := map[string]string{
 		"filename":    default_name,
 		"id":          feed.ObjectId,
-		"title":       feed.Title,
+		"title":       strings.ReplaceAll(strings.ReplaceAll(feed.Title, "/", "_"), "\\", "_"),
 		"spec":        "original",
 		"created_at":  string(feed.CreatedAt),
 		"download_at": NowMillisStr(),
 	}
 	if feed.Contact.Nickname != "" {
-		params["author"] = feed.Contact.Nickname
+		params["author"] = strings.ReplaceAll(strings.ReplaceAll(feed.Contact.Nickname, "/", "_"), "\\", "_")
 	}
 	if spec != nil && spec.FileFormat != "" {
 		params["spec"] = spec.FileFormat
@@ -66,7 +66,8 @@ func ValidateAndSplitFilename(input string) (string, string, error) {
 	if s == "" {
 		return "", "", fmt.Errorf("filename is empty")
 	}
-	s = strings.ReplaceAll(s, "\\", "/")
+	s = strings.ReplaceAll(s, "\\", "_")
+	s = strings.ReplaceAll(s, "/", "_")
 	s = strings.Map(func(r rune) rune {
 		switch r {
 		case '\n', '\r', '\t':
@@ -75,41 +76,26 @@ func ValidateAndSplitFilename(input string) (string, string, error) {
 			return r
 		}
 	}, s)
-	if strings.HasSuffix(s, "/") {
-		s = strings.TrimSuffix(s, "/")
+	if len(s) > 255 {
+		return "", "", fmt.Errorf("filename too long")
 	}
-	parts := make([]string, 0)
-	for _, p := range strings.Split(s, "/") {
-		if p == "" {
-			continue
+	invalid := false
+	for _, r := range s {
+		if unicode.IsControl(r) {
+			invalid = true
+			break
 		}
-		if p == "." || p == ".." {
-			return "", "", fmt.Errorf("invalid path segment")
-		}
-		if len(p) > 255 {
-			return "", "", fmt.Errorf("segment too long")
-		}
-		invalid := false
-		for _, r := range p {
-			if unicode.IsControl(r) {
-				invalid = true
-				break
-			}
-		}
-		if invalid {
-			return "", "", fmt.Errorf("invalid characters")
-		}
-		if regexp.MustCompile(`[<>:"\\|?*]`).MatchString(p) {
-			return "", "", fmt.Errorf("invalid characters")
-		}
-		parts = append(parts, p)
 	}
-	if len(parts) == 0 {
+	if invalid {
+		return "", "", fmt.Errorf("invalid characters")
+	}
+	if regexp.MustCompile(`[<>:"\\|?*]`).MatchString(s) {
+		return "", "", fmt.Errorf("invalid characters")
+	}
+	if s == "" {
 		return "", "", fmt.Errorf("filename is empty")
 	}
-	name := parts[len(parts)-1]
-	dir := strings.Join(parts[:len(parts)-1], "/")
-	return dir, name, nil
+	return "", s, nil
 }
 
 func EnsureFilename(name string, dir string, download_dir string) (string, error) {
@@ -117,9 +103,6 @@ func EnsureFilename(name string, dir string, download_dir string) (string, error
 		name = name + ".mp4"
 	}
 	latest_download_dir := download_dir
-	if dir != "" {
-		latest_download_dir = filepath.Join(latest_download_dir, dir)
-	}
 	if err := os.MkdirAll(latest_download_dir, 0o755); err != nil {
 		return "", err
 	}
@@ -198,6 +181,10 @@ func (fp *FilenameProcessor) SanitizeFilename(filename string) (string, error) {
 	// 移除非法字符
 	filename = fp.forbiddenChars.ReplaceAllString(filename, "")
 
+	// 额外处理可能引起问题的特殊字符
+	filename = strings.ReplaceAll(filename, " ", "_")
+	filename = strings.ReplaceAll(filename, "__", "_")
+
 	// 移除首尾空格和点
 	filename = strings.TrimSpace(filename)
 	filename = strings.Trim(filename, ".")
@@ -226,58 +213,52 @@ func (fp *FilenameProcessor) SanitizeFilename(filename string) (string, error) {
 
 // 处理单个文件名，考虑文件夹
 func (fp *FilenameProcessor) ProcessFilename(input_name string) (string, string, error) {
+	input_name = strings.ReplaceAll(input_name, "/", "_")
+	input_name = strings.ReplaceAll(input_name, "\\", "_")
 	input_name = strings.ReplaceAll(input_name, "//", "_")
-	// 分离目录和文件名
-	dir, filename := filepath.Split(input_name)
-	// 清理文件名部分
-	clean_name, err := fp.SanitizeFilename(filename)
+	ext := filepath.Ext(input_name)
+	name_part := input_name
+	if ext != "" {
+		name_part = input_name[:len(input_name)-len(ext)]
+	}
+	clean_name, err := fp.SanitizeFilename(name_part)
 	if err != nil {
-		return "", "", fmt.Errorf("invalid filename '%s': %v", filename, err)
+		return "", "", fmt.Errorf("invalid filename '%s': %v", input_name, err)
 	}
-	// 处理目录部分
-	if dir != "" {
-		dir = strings.TrimSuffix(dir, string(filepath.Separator))
-		dir_components := strings.Split(dir, string(filepath.Separator))
-		valid_dirs := []string{}
-		for _, comp := range dir_components {
-			valid_dir, err := fp.SanitizeFilename(comp)
-			if err != nil {
-				continue
-				// return "", "", fmt.Errorf("invalid directory name '%s' in path: %v", comp, err)
-			}
-			valid_dirs = append(valid_dirs, valid_dir)
-		}
-		dir = filepath.Join(valid_dirs...)
+	if ext != "" {
+		clean_name = clean_name + ext
 	}
-	// 组合完整路径
-	full_path := filepath.Join(dir, clean_name)
-	path_key := filepath.Clean(full_path)
-	// 处理重复文件名
+	path_key := filepath.Clean(clean_name)
 	count, exists := fp.usedFilenames[path_key]
 	if exists {
-		// 添加后缀
-		ext := filepath.Ext(clean_name)
-		name_without_ext := clean_name[:len(clean_name)-len(ext)]
+		name_without_ext := clean_name
+		name_ext := ""
+		if ext != "" {
+			name_without_ext = clean_name[:len(clean_name)-len(ext)]
+			name_ext = ext
+		} else {
+			dot_ext := filepath.Ext(clean_name)
+			if dot_ext != "" {
+				name_without_ext = clean_name[:len(clean_name)-len(dot_ext)]
+				name_ext = dot_ext
+			}
+		}
 		for {
 			count++
-			new_name := fmt.Sprintf("%s(%d)%s", name_without_ext, count, ext)
-			new_path := filepath.Join(dir, new_name)
-			new_path_key := filepath.Clean(new_path)
-
+			new_name := fmt.Sprintf("%s(%d)%s", name_without_ext, count, name_ext)
+			new_path_key := filepath.Clean(new_name)
 			if _, ok := fp.usedFilenames[new_path_key]; !ok {
 				clean_name = new_name
 				path_key = new_path_key
-				full_path = new_path
 				break
 			}
 		}
 	}
-	// 记录已使用的文件名
 	fp.usedFilenames[path_key] = count
 	if exists {
 		fp.usedFilenames[path_key] = 0
 	}
-	return clean_name, dir, nil
+	return clean_name, "", nil
 }
 
 // 主处理函数

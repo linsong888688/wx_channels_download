@@ -260,7 +260,7 @@ func (c *APIClient) createFeedTaskBody(oid, nid, reqUrl, eid string, isMp3, isCo
 
 	// 构建文件名
 	feed := r.Data.Object
-	defaultName := feed.ObjectDesc.Description
+	defaultName := strings.ReplaceAll(strings.ReplaceAll(feed.ObjectDesc.Description, "/", "_"), "\\", "_")
 	if defaultName == "" {
 		if feed.ID != "" {
 			defaultName = feed.ID
@@ -274,11 +274,11 @@ func (c *APIClient) createFeedTaskBody(oid, nid, reqUrl, eid string, isMp3, isCo
 		params := map[string]string{
 			"filename":    defaultName,
 			"id":          feed.ID,
-			"title":       feed.ObjectDesc.Description,
+			"title":       strings.ReplaceAll(strings.ReplaceAll(feed.ObjectDesc.Description, "/", "_"), "\\", "_"),
 			"spec":        spec,
 			"created_at":  strconv.Itoa(feed.CreateTime),
 			"download_at": util.NowSecondsStr(),
-			"author":      feed.Contact.Nickname,
+			"author":      strings.ReplaceAll(strings.ReplaceAll(feed.Contact.Nickname, "/", "_"), "\\", "_"),
 		}
 		filename = template
 		for k, v := range params {

@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -61,7 +62,8 @@ func download_command(args DownloadCommandArgs) {
 	}
 	tmp_filename := "tmp_wx_" + strconv.Itoa(int(time.Now().Unix()))
 	tmp_dest_filepath := filepath.Join(homedir, "Downloads", tmp_filename)
-	dest_filepath := filepath.Join(homedir, "Downloads", args.Filename)
+	safeFilename := strings.ReplaceAll(strings.ReplaceAll(args.Filename, "/", "_"), "\\", "_")
+	dest_filepath := filepath.Join(homedir, "Downloads", safeFilename)
 
 	if args.DecryptKey == 0 {
 		tmp_dest_filepath = dest_filepath

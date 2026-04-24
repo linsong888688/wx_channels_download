@@ -337,6 +337,7 @@ var WXU = (() => {
     var filename = template
       ? template.replace(/\{\{([^}]+)\}\}/g, (match, key) => params[key])
       : default_name;
+    filename = filename.replace(/\//g, "_").replace(/\\/g, "_");
     if (typeof window.beforeFilename === "function") {
       return window.beforeFilename(filename, params, profile, spec);
     }

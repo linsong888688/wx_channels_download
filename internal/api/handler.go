@@ -247,7 +247,7 @@ func (c *APIClient) handleCreateFeedDownloadTask(ctx *gin.Context) {
 		// ctx.JSON(http.StatusOK, Response{Code: 409, Msg: , Data: body})
 		return
 	}
-	filename, dir, err := c.formatter.ProcessFilename(body.Filename)
+	filename, _, err := c.formatter.ProcessFilename(body.Filename)
 	if err != nil {
 		result.Err(ctx, 409, "不合法的文件名，"+err.Error())
 		return
@@ -271,7 +271,7 @@ func (c *APIClient) handleCreateFeedDownloadTask(ctx *gin.Context) {
 		},
 		&base.Options{
 			Name: filename + body.Suffix,
-			Path: filepath.Join(c.cfg.DownloadDir, dir),
+			Path: c.cfg.DownloadDir,
 			Extra: &gopeedhttp.OptsExtra{
 				Connections: connections,
 			},
@@ -343,8 +343,8 @@ func (c *APIClient) handleCreateDownloadTask(ctx *gin.Context) {
 			Labels: labels,
 		},
 		&base.Options{
-			Name: body.Filename,
-			Path: filepath.Join(c.cfg.DownloadDir, body.Dir),
+			Name: strings.ReplaceAll(strings.ReplaceAll(body.Filename, "/", "_"), "\\", "_"),
+			Path: c.cfg.DownloadDir,
 			Extra: &gopeedhttp.OptsExtra{
 				Connections: 1,
 			},
@@ -550,7 +550,7 @@ func buildBatchCreateTask(c *APIClient, existing_task_map map[string]int, feeds 
 	}
 	task := base.CreateTaskBatch{}
 	for _, item := range items {
-		filename, dir, err := c.formatter.ProcessFilename(item["name"] + item["suffix"])
+		filename, _, err := c.formatter.ProcessFilename(item["name"] + item["suffix"])
 		if err != nil {
 			continue
 		}
@@ -569,7 +569,7 @@ func buildBatchCreateTask(c *APIClient, existing_task_map map[string]int, feeds 
 			},
 			Opts: &base.Options{
 				Name: filename,
-				Path: filepath.Join(download_dir, dir),
+				Path: download_dir,
 			},
 		})
 	}
@@ -629,7 +629,7 @@ func (c *APIClient) handleCreateChannelsTask(ctx *gin.Context) {
 		// ctx.JSON(http.StatusOK, Response{Code: 409, Msg: , Data: body})
 		return
 	}
-	filename, dir, err := c.formatter.ProcessFilename(payload.Filename)
+	filename, _, err := c.formatter.ProcessFilename(payload.Filename)
 	if err != nil {
 		result.Err(ctx, 409, "不合法的文件名，"+err.Error())
 		return
@@ -648,7 +648,7 @@ func (c *APIClient) handleCreateChannelsTask(ctx *gin.Context) {
 		},
 		&base.Options{
 			Name: filename + payload.Suffix,
-			Path: filepath.Join(c.cfg.DownloadDir, dir),
+			Path: c.cfg.DownloadDir,
 			Extra: &gopeedhttp.OptsExtra{
 				Connections: connections,
 			},
