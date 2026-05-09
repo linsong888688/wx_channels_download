@@ -317,6 +317,60 @@ func (c *ChannelsClient) FetchChannelsFeedProfile(oid, uid, url, eid string) (*t
 	return &r, nil
 }
 
+func (c *ChannelsClient) FetchChannelsSharedFeedProfile(url string) (*types.ChannelsFeedProfileResp, error) {
+	// fmt.Println("[API]fetch feed profile", oid, uid)
+	kk := fmt.Sprintf("%s", url)
+	cache_key := "channels:shared_feed_profile:" + kk
+	if val, found := c.cache.Get(cache_key); found {
+		if resp, ok := val.(*types.ChannelsFeedProfileResp); ok {
+			return resp, nil
+		}
+	}
+	resp, err := c.RequestFrontend("key:channels:shared_feed_profile", types.ChannelsSharedFeedProfileBody{URL: url}, 10*time.Second)
+	if err != nil {
+		return nil, err
+	}
+	var r types.ChannelsFeedProfileResp
+	if err := json.Unmarshal(resp.Data, &r); err != nil {
+		return nil, err
+	}
+	c.cache.Set(cache_key, &r, 60*time.Minute)
+	return &r, nil
+
+}
+
+func (c *ChannelsClient) FetchChannelsFeedCommentList(oid, nid, comment_id, next_marker string) (*types.ChannelsFeedCommentListResp, error) {
+	if oid == "" {
+		return nil, errors.New("missing oid")
+	}
+	if nid == "" && comment_id == "" {
+		return nil, errors.New("missing nid or comment_id")
+	}
+	kk := fmt.Sprintf("%s:%s:%s:%s", oid, nid, comment_id, next_marker)
+	cache_key := "channels:feed_comment_list:" + kk
+	if val, found := c.cache.Get(cache_key); found {
+		if resp, ok := val.(*types.ChannelsFeedCommentListResp); ok {
+			return resp, nil
+		}
+	}
+	resp, err := c.RequestFrontend("key:channels:fetch_feed_comment_list", types.ChannelsFeedCommentListBody{
+		ObjectId:  oid,
+		ObjectNonceId: nid,
+		CommentId: comment_id,
+		NextMarker: next_marker,
+	}, 10*time.Second)
+	if err != nil {
+		return nil, err
+	}
+	var r types.ChannelsFeedCommentListResp
+	if err := json.Unmarshal(resp.Data, &r); err != nil {
+		return nil, err
+	}
+	c.cache.Set(cache_key, &r, 60*time.Minute)
+	return &r, nil
+}
+
+
 func (c *ChannelsClient) ReloadChannels() error {
 	_, err := c.RequestFrontend("key:channels:reload", nil, 5*time.Second)
 	return err

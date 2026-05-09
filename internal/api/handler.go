@@ -72,6 +72,19 @@ func (c *APIClient) handleFetchInteractionedFeedList(ctx *gin.Context) {
 	result.Ok(ctx, resp)
 }
 
+func (c *APIClient) handleFetchFeedCommentList(ctx *gin.Context) {
+	oid := ctx.Query("oid")
+	nid := ctx.Query("nid")
+	comment_id := ctx.Query("comment_id")
+	next_marker := ctx.Query("next_marker")
+	resp, err := c.channels.FetchChannelsFeedCommentList(oid, nid, comment_id, next_marker)
+	if err != nil {
+		result.Err(ctx, 400, err.Error())
+		return
+	}
+	result.Ok(ctx, resp)
+}
+
 type AtomAuthor struct {
 	Name string `xml:"name"`
 }
@@ -205,6 +218,20 @@ func (c *APIClient) handleFetchFeedProfile(ctx *gin.Context) {
 		}
 	}
 	resp, err := c.channels.FetchChannelsFeedProfile(oid, uid, _url, eid)
+	if err != nil {
+		result.Err(ctx, 400, err.Error())
+		return
+	}
+	result.Ok(ctx, resp)
+}
+
+func (c *APIClient) handleFetchSharedFeedProfile(ctx *gin.Context) {
+	_url := ctx.Query("url")
+	if _url == "" {
+		result.Err(ctx, 400, "missing url")
+		return
+	}
+	resp, err := c.channels.FetchChannelsSharedFeedProfile(_url)
 	if err != nil {
 		result.Err(ctx, 400, err.Error())
 		return
@@ -581,6 +608,7 @@ type ChannelsDownloadPayload struct {
 	Nid   string `json:"nid"`
 	Eid   string `json:"eid"`
 	URL   string `json:"url"`
+	Spec  string `json:"spec"`  // 自定义规格，为空时下载原始视频
 	MP3   bool   `json:"mp3"`   // 是否下载为 mp3
 	Cover bool   `json:"cover"` // 是否下载封面
 }
@@ -605,7 +633,7 @@ func (c *APIClient) handleCreateChannelsTask(ctx *gin.Context) {
 			}
 		}
 	}
-	payload, err := c.createFeedTaskBody(body.Oid, body.Nid, body.URL, body.Eid, body.MP3, body.Cover)
+	payload, err := c.createFeedTaskBody(body.Oid, body.Nid, body.URL, body.Eid, body.MP3, body.Cover, body.Spec)
 	if err != nil {
 		result.Err(ctx, 500, err.Error())
 		return

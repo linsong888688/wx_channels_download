@@ -17,6 +17,8 @@ func (c *APIClient) SetupRoutes() {
 		c.engine.GET("/api/channels/feed/profile", c.handleFetchFeedProfile)
 		c.engine.GET("/api/channels/live/replay/list", c.handleFetchLiveReplayList)
 		c.engine.GET("/api/channels/interactioned/list", c.handleFetchInteractionedFeedList)
+		c.engine.GET("/api/channels/shared_feed/profile", c.handleFetchSharedFeedProfile)
+		c.engine.GET("/api/channels/feed/comment/list", c.handleFetchFeedCommentList)
 		c.engine.GET("/rss/channels", c.handleFetchFeedListOfContactRSS)
 		// 公众号接口
 		c.engine.GET("/ws/mp", c.official.HandleWebsocket)
@@ -80,7 +82,7 @@ func (c *APIClient) SetupRoutes() {
 func (c *APIClient) handleFavicon(ctx *gin.Context) {
 	ctx.Header("Content-Type", "image/png")
 	ctx.Header("Cache-Control", "public, max-age=86400")
-	ctx.File("winres/icon.png")
+	ctx.File("build/winres/icon.png")
 }
 
 func (c *APIClient) handleStatus(ctx *gin.Context) {

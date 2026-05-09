@@ -245,6 +245,45 @@ type ChannelsFeedListOfAccountResp struct {
 	} `json:"payload"`
 }
 
+type ChannelsSharedFeedProfileResp struct {
+	Data SharedFeedProfileData `json:"data"`
+	Errcode int `json:"errCode"`
+	Errmsg string `json:"errMsg"`
+}
+type SharedFeedProfileData struct {
+	Authorinfo SharedFeedAuthorinfo `json:"authorInfo"`
+	Feedinfo SharedFeedinfo `json:"feedInfo"`
+	Errmsg Errmsg `json:"errMsg"`
+	Sceneinfo SharedFeedSceneinfo `json:"sceneInfo"`
+}
+type SharedFeedSceneinfo struct {
+	Dynamicexportid string `json:"dynamicExportId"`
+	Commentscene int `json:"commentScene"`
+	Expiredtime int `json:"expiredTime"`
+	Requestscene int `json:"requestScene"`
+	Entryscene int `json:"entryScene"`
+	Entrycardtype int `json:"entryCardType"`
+}
+type Errmsg struct {
+	Type int `json:"type"`
+}
+type SharedFeedinfo struct {
+	Picinfo []interface{} `json:"picInfo"`
+	Description string `json:"description"`
+	Favcountfmt string `json:"favCountFmt"`
+	Likecountfmt string `json:"likeCountFmt"`
+	Forwardcountfmt string `json:"forwardCountFmt"`
+	Commentcountfmt string `json:"commentCountFmt"`
+	Createtime int `json:"createtime"`
+	Ishardad bool `json:"isHardAd"`
+	Coverurl string `json:"coverUrl"`
+}
+type SharedFeedAuthorinfo struct {
+	Nickname string `json:"nickname"`
+	Headimgurl string `json:"headImgUrl"`
+	Authiconurl string `json:"authIconUrl"`
+}
+
 type ChannelsFeedProfileResp struct {
 	ErrCode int    `json:"errCode"`
 	ErrMsg  string `json:"errMsg"`
@@ -297,6 +336,9 @@ type ChannelsFeedProfileBody struct {
 	ObjectId          string `json:"oid"`
 	NonceId           string `json:"nid"`
 	EncryptedObjectId string `json:"eid"`
+}
+type ChannelsSharedFeedProfileBody struct {
+	URL               string `json:"url"`
 }
 type ChannelsFeedList struct {
 	List       []ChannelsFeedProfile `json:"list"`
@@ -359,4 +401,110 @@ func ChannelsObjectToChannelsFeedProfile(r *ChannelsObject) *ChannelsFeedProfile
 		},
 	}
 	return prof
+}
+
+type ChannelsFeedCommentListBody struct {
+	ObjectId  string `json:"oid"`
+	ObjectNonceId  string `json:"nid"`
+	CommentId string `json:"comment_id"`
+	NextMarker string `json:"next_marker"`
+}
+
+type ChannelsFeedCommentListResp struct {
+	ErrCode int    `json:"errCode"`
+	ErrMsg  string `json:"errMsg"`
+	Data    struct {
+		Baseresponse Baseresponse `json:"BaseResponse"`
+		Commentinfo []FeedCommentInfo `json:"commentInfo"` // 评论列表
+		Countinfo FeedCommentCountInfo `json:"countInfo"`
+		Lastbuffer string `json:"lastBuffer"` // 分页参数
+		Upcontinueflag int `json:"upContinueFlag"`
+		Downcontinueflag int `json:"downContinueFlag"`
+		Monotonicdata Monotonicdata `json:"monotonicData"`
+		Newlifeinfo FeedCommentNewlifeinfo `json:"newlifeInfo"`
+		Requestid int `json:"requestId"`
+		Emojidesccomments []interface{} `json:"emojiDescComments"`
+		Desccomments []interface{} `json:"descComments"`
+		Payload struct {
+			FinderBasereq struct{
+				Scene int `json:"scene"`
+				CtxInfo struct {
+					ClientReportBuff string `json:"clientReportBuff"`
+				} `json:"ctxInfo"`
+				ObjectBaseInfos []struct{
+					SessionBuffer string `json:"sessionBuffer"`
+				} `json:"objectBaseInfos"`
+			} `json:"finderBasereq"`
+			ObjectId string `json:"objectId"`
+			ObjectNonceId string `json:"objectNonceId"`
+			Direction int `json:"direction"`
+			IdentityScene int `json:"identityScene"`
+			LastBuffer string `json:"lastBuffer"`
+			EnterSessionId string `json:"enterSessionId"`
+		} `json:"payload"`
+	}      `json:"data"`
+}
+type FeedCommentNewlifeinfo struct {
+   Commentflag int `json:"commentFlag"`
+}
+type Monotonicdata struct {
+   Countinfo FeedCommentCountInfo `json:"countInfo"`
+   Commentcount FeedCommentCount `json:"commentCount"`
+}
+type FeedCommentCount struct {
+    Commentcount int `json:"commentCount"`
+    Imagecommentcount int `json:"imageCommentCount"`
+    Versiondata Versiondata `json:"versionData"`
+}
+type FeedCommentCountInfo struct {
+    Commentcount int `json:"commentCount"` // 评论总数
+    Likecount int `json:"likeCount"` // 点赞总数
+    Forwardcount int `json:"forwardCount"` // 转发总数
+    Favcount int `json:"favCount"` // 喜欢总数
+    Versiondata Versiondata `json:"versionData"`
+}
+type Versiondata struct {
+     Dataversion int `json:"dataVersion"`
+}
+type FeedCommentInfo struct {
+    Username string `json:"username"`
+    Nickname string `json:"nickname"` // 评论人昵称
+    Content string `json:"content"` // 评论内容
+    Commentid string `json:"commentId"` // 评论id
+    Replycommentid string `json:"replyCommentId"`
+    Headurl string `json:"headUrl"` // 评论人头像
+    Leveltwocomment []interface{} `json:"levelTwoComment"`
+    Createtime string `json:"createtime"`
+    Likeflag int `json:"likeFlag"`
+    Likecount int `json:"likeCount"` // 该评论点赞数
+    Expandcommentcount int `json:"expandCommentCount"`
+    Lastbuffer string `json:"lastBuffer"`
+    Continueflag int `json:"continueFlag"`
+    Displayflag int `json:"displayFlag"`
+    Replycontent string `json:"replyContent"`
+    Upcontinueflag int `json:"upContinueFlag"`
+    Extflag int `json:"extFlag"`
+    Authorcontact Authorcontact `json:"authorContact"` // 评论人信息
+    Contenttype int `json:"contentType"` // 评论内容类型
+    Reportjson string `json:"reportJson"`
+    Dislikecount int `json:"dislikeCount"`
+    Ipregioninfo Ipregioninfo `json:"ipRegionInfo"`
+    Searchkeywordinfo []interface{} `json:"searchKeywordInfo"`
+    Mentioneduserinfo []interface{} `json:"mentionedUserInfo"`
+    Interactionlabellist []interface{} `json:"interactionLabelList"`
+}
+type Ipregioninfo struct {
+     Regiontext string `json:"regionText"`
+}
+type Authorcontact struct {
+     Username string `json:"username"`
+     Nickname string `json:"nickname"`
+     Headurl string `json:"headUrl"`
+     Bindinfo []interface{} `json:"bindInfo"`
+     Menu []interface{} `json:"menu"`
+     Referenceinfo []interface{} `json:"referenceInfo"`
+}
+type Baseresponse struct {
+   Ret int `json:"Ret"`
+   Errmsg Errmsg `json:"ErrMsg"`
 }
